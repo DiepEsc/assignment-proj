@@ -11,8 +11,8 @@ export default function LoginScreen() {
   const dispatch = useAppDispatch();
   const loginState = useSelector(selectLoginState);
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('dev');
+  const [password, setPassword] = useState('rockets');
 
   const [isPasswordVisible, setPasswordVisible] = useState(false);
 
