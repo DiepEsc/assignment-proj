@@ -52,6 +52,7 @@ export const loginSlice = createSlice({
     builder
       .addCase(login.pending, (state) => {
         state.isLoggingIn = true
+        state.loginError = undefined
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoggingIn = false
