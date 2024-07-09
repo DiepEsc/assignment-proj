@@ -1,11 +1,17 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { NativeSyntheticEvent, StyleSheet, View } from "react-native";
 import PagerView, { PagerViewOnPageSelectedEvent } from "react-native-pager-view";
 import TiktokStyleVideo from "./TiktokStyleVideo";
+import VideoOptions, { VideoAction } from "./VideoOptions";
 
-export default function TiktokStyleVideoList({ videos }: { videos: VideoModel[] }) {
+export default function TiktokStyleVideoList({ videos, onAction }: { videos: VideoModel[], onAction?: (action: VideoAction, currenPosition: number) => void }) {
 
   const [currenPosition, setCurrentPosition] = useState(0);
+  const onActionCallback = useCallback((action: VideoAction) => {
+      onAction?.(action, currenPosition)
+    },
+    [onAction, currenPosition]
+  )
 
   function handlePageSelected(event: PagerViewOnPageSelectedEvent): void | Promise<void> {
     const position = event.nativeEvent.position;
@@ -22,7 +28,12 @@ export default function TiktokStyleVideoList({ videos }: { videos: VideoModel[] 
             )
           })
         }
-      </PagerView></View>
+      </PagerView>
+      <VideoOptions
+        containerStyle={{ position: 'absolute', bottom: 0, end: 0 }}
+        onAction={onActionCallback}
+      />
+    </View>
   );
 }
 

@@ -27,7 +27,7 @@ export default function LoginScreen() {
 
   if (loginState.isLoggedIn) {
     return (
-      <Redirect href="/home" />
+      <Redirect href={{pathname: '/[username]/new', params: { username: username }}} />
     );
   }
 

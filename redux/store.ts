@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
 import loginReducer from './slices/loginSlice'
+import videoReducer from './slices/videoSlice'
 
 export const store = configureStore({
   reducer: {
-    login: loginReducer
+    login: loginReducer,
+    videos: videoReducer
   },
 })
 

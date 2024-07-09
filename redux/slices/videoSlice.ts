@@ -1,17 +1,171 @@
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
-import TiktokStyleVideoList from "@/components/TiktokStyleVideoList";
-import React from "react";
+export interface VideosState {
+  newVideos: VideoModel[],
+  trendingVideos: VideoModel[],
+  isLoadingInProgress: boolean,
+  error?: any
+}
+
+const initialState: VideosState = {
+  newVideos: [],
+  trendingVideos: [],
+  isLoadingInProgress: false
+}
+
+let mockIdSeq = 0;
 
 
-export default function New() {
-  const videos: VideoModel[] = rawVideoData.categories.map((category) => category.videos.map((video) => ({
+/**
+ * A mock function that simulates video creating which adds a unique ID to the video.
+ *
+ * @param {VideoModel} video - The video object to create.
+ * @return {Promise<VideoModel>} The newly created video with a generated ID.
+ */
+async function createVideo(video: VideoModel): Promise<VideoModel> {
+  return { ...video, id: `mock-video-${mockIdSeq++}` }
+}
+
+
+async function getVideoLists(): Promise<{ newVideos: VideoModel[], trendingVideos: VideoModel[] }> {
+  const videos = rawVideoData.categories.map((category) => category.videos.map((video) => ({
     url: video.sources[0],
     title: video.title
   }))).flat();
-  return (
-    <TiktokStyleVideoList videos={videos} />
-  );
+
+  return {
+    newVideos: await Promise.all(videos.map((video) => createVideo(video))),
+    trendingVideos: await Promise.all(videos.map((video) => createVideo(video)))
+  }
 }
+
+
+const loadVideoLists = createAsyncThunk(
+  'videos/loadVideoLists',
+  async ({username}: {username: string}) => {
+    const { newVideos, trendingVideos } = await getVideoLists();
+    return {
+      newVideos,
+      trendingVideos
+    }
+  }
+)
+
+export const videosSlice = createSlice({
+  name: 'videos',
+  initialState,
+  reducers: {
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(loadVideoLists.pending, (state) => {
+        state.isLoadingInProgress = true
+        state.error = undefined
+      })
+      .addCase(loadVideoLists.fulfilled, (state, action) => {
+        state.isLoadingInProgress = false
+        // TODO: fix the logic
+        state.newVideos = state.newVideos.length > 0 ? state.newVideos : action.payload.newVideos
+        state.trendingVideos =  state.trendingVideos.length > 0 ? state.trendingVideos : action.payload.trendingVideos
+      })
+      .addCase(loadVideoLists.rejected, (state, action) => {
+        state.isLoadingInProgress = false
+        state.error = action.error
+      })
+      .addCase(addVideo.pending, (state) => {
+        state.isLoadingInProgress = true
+        state.error = undefined
+      })
+      .addCase(addVideo.fulfilled, (state, action) => {
+        state.isLoadingInProgress = false
+        if (action.payload.list === 'new') {
+          state.newVideos = [action.payload.video, ...state.newVideos]
+        } else {
+          state.trendingVideos = [...state.trendingVideos, action.payload.video]
+        }
+      })
+      .addCase(addVideo.rejected, (state, action) => {
+        state.isLoadingInProgress = false
+        state.error = action.error
+      })
+      
+      .addCase(updateVideo.pending, (state) => {
+        state.isLoadingInProgress = true
+        state.error = undefined
+      })
+      .addCase(updateVideo.fulfilled, (state, action) => {
+        state.isLoadingInProgress = false
+        const { list, video } = action.payload;
+        state.newVideos = state.newVideos.map((element) => video.id === element.id ? video : element)
+        state.trendingVideos = state.trendingVideos.map((element) => video.id === element.id ? video : element)
+        switch (list) {
+          case 'new':
+            if (!state.newVideos.find((element) => video.id === element.id)) {
+              state.newVideos = [video, ...state.newVideos]
+            }
+            state.trendingVideos = state.trendingVideos.filter((element) => video.id !== element.id)
+            break;
+          case 'trending':
+            if (!state.trendingVideos.find((element) => video.id === element.id)) {
+              state.trendingVideos = [...state.trendingVideos, video]
+            }
+            state.newVideos = state.newVideos.filter((element) => video.id !== element.id)
+            break;
+        }
+      })
+      .addCase(updateVideo.rejected, (state, action) => {
+        state.isLoadingInProgress = false
+        state.error = action.error
+      })
+  }
+});
+
+
+const addVideo = createAsyncThunk(
+  'videos/addVideo',
+  async ({ video, list }: { video: VideoModel, list: 'new' | 'trending' }) => {
+    const videoResult = await createVideo(video);
+    return {
+      video: videoResult,
+      list
+    }
+  }
+)
+
+
+const updateVideo = createAsyncThunk(
+  'videos/updateVideo',
+  async ({ video, list }: { video: VideoModel, list?: 'new' | 'trending' }) => {
+    // TODO: Add video to list to BE side
+    return {
+      video,
+      list
+    }
+  }
+)
+
+
+export default videosSlice.reducer;
+export const actions = {
+  loadVideoLists,
+  addVideo,
+  updateVideo
+}
+export const selectVideosState: (state: any) => VideosState = (state) => state.videos
+export const selectIsLoadingInProgress = (state: any) => selectVideosState(state).isLoadingInProgress
+export const selectError = (state: any) => selectVideosState(state).error
+export const selectListNewVideos: (state: any) => VideoModel[] = (state) => selectVideosState(state).newVideos
+export const selectListTrendingVideos: (state: any) => VideoModel[] = (state) => selectVideosState(state).trendingVideos
+
+
+
+
+
+
+
+
+
+
 
 const rawVideoData = {
   "categories": [
